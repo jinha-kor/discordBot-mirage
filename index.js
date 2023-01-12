@@ -1,6 +1,5 @@
 const Discord = require('discord.js');
 // { Client, GatewayIntentBits, Partials }
-const token = 'MTA2Mjk2ODgyMzE5MzUzNDQ5NQ.Gbpa_j.T-F65KjcrBP1KXjjokSv-AWd6kQ8G76au1nQ7U';
 
 const client = new Discord.Client({
     intents: [
@@ -23,4 +22,4 @@ client.on('interactionCreate', async interaction => {
     }
 });
 // 봇과 서버를 연결해주는 부분
-client.login(token);
+client.login(process.env.NODE_TOKEN);
