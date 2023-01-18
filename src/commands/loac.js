@@ -1,13 +1,9 @@
 import axios from 'axios';
 import { SlashCommandBuilder } from '../index.js';
 import Embed from '../component/embedBuilder.js';
-
-const textArea = (text) => {
-    let newText = '```md\r';
-    newText += `[${text}]:`;
-    newText += '\r```';
-    return newText
-}
+import { embedTextUtil, deleteHtmlText } from '../utils/commonUtils.js';
+import { EffectEmbeddedText } from '../utils/effectUtils.js';
+import { axiosGet } from '../utils/httpUtils.js';
 
 export const data = () => {
     return new SlashCommandBuilder()
@@ -19,46 +15,22 @@ export const data = () => {
 }
 
 export const execute = async (interaction) => {
-    const LOST_TOKEN = process.env.LOST_TOKEN;
     const nickName = interaction.options._hoistedOptions[0].value;
-    // const url = `https://developer-lostark.game.onstove.com/characters/${nickName}/siblings`; // 전체 캐릭터
-    const cUrl = `https://developer-lostark.game.onstove.com/armories/characters/${nickName}/profiles`; // 캐릭터
-    const eUrl = `https://developer-lostark.game.onstove.com/armories/characters/${nickName}/equipment`; // 장비
-    const config = {
-        headers: {
-            Authorization: `${LOST_TOKEN}`,
-            Accept: 'application/json'
-        }
-    };
-
-    const characterInfo =
-        await axios.get(encodeURI(cUrl), config)
-            .then((response) => {
-                return response;
-            })
-            .catch((err) => {
-                return err;
-            });
+    const characterInfo = await axiosGet('/profiles', nickName);
+    const equipmentInfo = await axiosGet('/equipment', nickName);
+    const engravingsInfo = await axiosGet('/engravings', nickName);
 
     if (characterInfo.status === 200) {
-        const equipmentInfo =
-            await axios.get(encodeURI(eUrl), config)
-                .then((response) => {
-                    return response;
-                })
-                .catch((err) => {
-                    return err;
-                });
+        const nTextData = EffectEmbeddedText(equipmentInfo);
 
-        console.log(equipmentInfo.status, equipmentInfo.data)
-        const equiArray = [];
-        equipmentInfo.data.map((res) => {
-            return equiArray.push({
-                name: res.Type,
-                value: textArea(res.Name),
-                inline: true
-            })
-        })
+        let effectsText = '';
+        engravingsInfo.data.Effects.map((res, idx) => {
+            if (idx === 0) {
+                return effectsText = `${res.Name}`;
+            } else {
+                return effectsText += `,${res.Name}`;
+            }
+        });
 
         const props = {
             title: '캐릭터 정보',
@@ -69,12 +41,12 @@ export const execute = async (interaction) => {
                 [
                     {
                         name: '서버',
-                        value: textArea(characterInfo.data.ServerName),
+                        value: embedTextUtil(characterInfo.data.ServerName),
                         inline: true
                     },
                     {
                         name: '원정대Lv',
-                        value: textArea(characterInfo.data.ExpeditionLevel.toString()),
+                        value: embedTextUtil(characterInfo.data.ExpeditionLevel.toString()),
                         inline: true
                     },
                     { name: '\u200B', value: '\u200B' },
@@ -82,31 +54,52 @@ export const execute = async (interaction) => {
                 [
                     {
                         name: '캐릭터명',
-                        value: textArea(characterInfo.data.CharacterName),
+                        value: embedTextUtil(characterInfo.data.CharacterName),
                         inline: true
                     },
                     {
                         name: '직업',
-                        value: textArea(characterInfo.data.CharacterClassName),
+                        value: embedTextUtil(characterInfo.data.CharacterClassName),
                         inline: true
                     },
                     {
                         name: 'Level',
-                        value: textArea(characterInfo.data.ItemMaxLevel.toString()),
+                        value: embedTextUtil(characterInfo.data.ItemMaxLevel.toString()),
                         inline: true
                     },
                     {
                         name: '길드',
-                        value: textArea(characterInfo.data.GuildName),
+                        value: embedTextUtil(characterInfo.data.GuildName),
                         inline: true
                     },
                     { name: '\u200B', value: '\u200B' },
                 ],
-                equiArray
+                [
+                    {
+                        name: '각인',
+                        value: embedTextUtil(effectsText, 'effect')
+                    },
+                    { name: '\u200B', value: '\u200B' },
+                ],
+                [
+                    {
+                        name: '장비',
+                        value: embedTextUtil(nTextData.equipmentText, 'equipment')
+                    },
+                    {
+                        name: '악세',
+                        value: embedTextUtil(nTextData.accText, 'equipment')
+                    },
+                    {
+                        name: '기타',
+                        value: embedTextUtil(nTextData.extText, 'equipment')
+                    },
+                    { name: '\u200B', value: '\u200B' },
+                ],
             ],
             timestamp: new Date()
         }
         return await interaction.reply(Embed(props));
     }
-    return await interaction.reply(`요청하신 캐릭터를 찾을 수 없습니다.`);
+    return await interaction.reply(`요청하신 캐릭터 ( ${nickName} ) 정보를 찾을 수 없습니다.`);
 }
