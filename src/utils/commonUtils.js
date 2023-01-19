@@ -1,5 +1,5 @@
 export const embedTextUtil = (text, target) => {
-    let embedText = '```';
+    let embedText = '```fix';
     if (target === 'effect' || target === 'equipment') {
         embedText += '\r';
         const tmpText = text.split(',');

@@ -33,6 +33,7 @@ export const execute = async (interaction) => {
         });
 
         const props = {
+            color: 15844367,
             title: '캐릭터 정보',
             thumbnail: {
                 url: characterInfo.data.CharacterImage.toString(),
